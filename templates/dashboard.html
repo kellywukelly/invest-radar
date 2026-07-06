@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>長線佈局雷達</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@600;700&family=Noto+Sans+TC:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0B0F17; --card:#131A26; --line:#232D3F;
+    --ink:#E8EDF4; --dim:#8A96A8; --faint:#5A6576;
+    --up:#E5484D; --down:#30A46C; --buy:#F2B23E;
+    --mono:'IBM Plex Mono',ui-monospace,monospace;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--bg);color:var(--ink);font-family:'Noto Sans TC',sans-serif;
+       min-height:100vh;padding:32px 20px 56px}
+  .wrap{max-width:1080px;margin:0 auto}
+
+  header{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px 18px;
+         border-bottom:1px solid var(--line);padding-bottom:18px;margin-bottom:26px}
+  h1{font-family:'Noto Serif TC',serif;font-size:26px;font-weight:700;letter-spacing:.06em}
+  .sub{color:var(--dim);font-size:13px}
+  .stamp{margin-left:auto;font-family:var(--mono);font-size:12px;color:var(--dim)}
+  .banner{margin-bottom:22px;padding:12px 16px;border:1px solid var(--buy);
+          border-radius:10px;background:rgba(242,178,62,.08);color:var(--buy);
+          font-size:14px;font-weight:500}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;
+        padding:18px 18px 16px;animation:rise .45s ease both}
+  .card:nth-child(2){animation-delay:.05s}.card:nth-child(3){animation-delay:.1s}
+  .card:nth-child(4){animation-delay:.15s}.card:nth-child(5){animation-delay:.2s}
+  @keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion:reduce){.card{animation:none}}
+  .card.hit{border-color:var(--buy);box-shadow:0 0 0 1px var(--buy),0 0 24px rgba(242,178,62,.18)}
+
+  .top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px}
+  .name{font-size:16px;font-weight:700}
+  .sym{font-family:var(--mono);font-size:11px;color:var(--dim);margin-top:2px}
+  .tag{font-size:11px;font-weight:700;color:#0B0F17;background:var(--buy);
+       border-radius:6px;padding:3px 8px;letter-spacing:.08em}
+
+  .price{font-family:var(--mono);font-size:26px;font-weight:600;margin:4px 0 2px}
+  .price small{font-size:13px;color:var(--dim);font-weight:400;margin-right:2px}
+  .chg{font-family:var(--mono);font-size:13px;font-weight:500}
+  .pos{color:var(--up)} .neg{color:var(--down)}
+
+  .spark{display:block;margin:10px 0 14px;opacity:.9}
+
+  /* 乖離水位計 —— 距離買點還有多遠 */
+  .gauge-label{display:flex;justify-content:space-between;font-size:11px;
+               color:var(--dim);margin-bottom:5px}
+  .gauge{position:relative;height:10px;border-radius:5px;
+         background:linear-gradient(90deg,rgba(242,178,62,.55) 0%,rgba(48,164,108,.35) 42%,
+                    rgba(35,45,63,.9) 50%,rgba(229,72,77,.35) 58%,rgba(229,72,77,.55) 100%)}
+  .gauge .zero{position:absolute;left:50%;top:-3px;width:1px;height:16px;background:var(--dim)}
+  .gauge .flag{position:absolute;top:-4px;width:2px;height:18px;background:var(--buy)}
+  .gauge .pin{position:absolute;top:50%;width:14px;height:14px;border-radius:50%;
+              background:var(--ink);border:3px solid var(--card);
+              transform:translate(-50%,-50%);box-shadow:0 0 0 1px var(--line)}
+  .card.hit .gauge .pin{background:var(--buy)}
+  .gauge-scale{display:flex;justify-content:space-between;font-family:var(--mono);
+               font-size:10px;color:#5A6576;margin-top:5px}
+
+  .stats{display:flex;gap:0;margin-top:14px;border-top:1px solid var(--line);padding-top:12px}
+  .stat{flex:1;text-align:center}
+  .stat+.stat{border-left:1px solid var(--line)}
+  .stat b{display:block;font-family:var(--mono);font-size:15px;font-weight:600}
+  .stat span{font-size:11px;color:var(--dim)}
+  .stat.ok b{color:var(--buy)}
+
+  footer{margin-top:34px;color:#5A6576;font-size:12px;line-height:1.8}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>長線佈局雷達</h1>
+    <span class="sub">年線乖離 × 週 RSI 雙重確認</span>
+    <span class="stamp">更新 {{ updated_at }} 台北時間</span>
+  </header>
+
+  {% if signal_count > 0 %}
+  <div class="banner">◆ 買點訊號成立:{{ triggered_names|join('、') if triggered_names else '見下方高亮卡片' }} — 雙重確認達標,已進入加碼區</div>
+  {% endif %}
+
+  <div class="grid">
+  {% for c in cards %}
+    <div class="card{% if c.buy_signal %} hit{% endif %}">
+      <div class="top">
+        <div>
+          <div class="name">{{ c.name }}</div>
+          <div class="sym">{{ c.symbol }} · {{ c.last_date }}</div>
+        </div>
+        {% if c.buy_signal %}<span class="tag">加碼區</span>{% endif %}
+      </div>
+
+      <div class="price"><small>{{ c.currency }}</small>{{ "%.2f"|format(c.price) }}</div>
+      <div class="chg {{ 'pos' if c.day_change_pct >= 0 else 'neg' }}">
+        {{ "%+.2f"|format(c.day_change_pct) }}%(日)
+      </div>
+
+      <svg class="spark" width="100%" height="44" viewBox="0 0 200 44" preserveAspectRatio="none">
+        <polyline points="{{ c.spark_points }}" fill="none"
+          stroke="{{ '#E5484D' if c.spark_up else '#30A46C' }}" stroke-width="1.6"/>
+      </svg>
+
+      <div class="gauge-label"><span>年線乖離水位</span>
+        <span>門檻 {{ "%+.0f"|format(c.dev_threshold) }}%</span></div>
+      <div class="gauge">
+        <span class="zero"></span>
+        <span class="flag" style="left:{{ c.gauge_threshold_pos }}%"></span>
+        <span class="pin" style="left:{{ c.gauge_pos }}%"></span>
+      </div>
+      <div class="gauge-scale"><span>-30%</span><span>年線</span><span>+30%</span></div>
+
+      <div class="stats">
+        <div class="stat{% if c.dev_hit %} ok{% endif %}">
+          <b>{{ "%+.1f"|format(c.dev200) if c.dev200 is not none else "—" }}%</b>
+          <span>年線乖離</span>
+        </div>
+        <div class="stat">
+          <b>{{ "%+.1f"|format(c.dev20) if c.dev20 is not none else "—" }}%</b>
+          <span>月線乖離</span>
+        </div>
+        <div class="stat{% if c.rsi_hit %} ok{% endif %}">
+          <b>{{ "%.1f"|format(c.weekly_rsi) if c.weekly_rsi is not none else "—" }}</b>
+          <span>週 RSI</span>
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+  </div>
+
+  <footer>
+    水位計指針為現價相對 200 日均線(年線)的乖離位置,琥珀旗標為設定的加碼門檻;指針落在旗標左側且週 RSI 達標,即觸發 Email 通知。<br>
+    資料來源:Yahoo Finance(台股報價約延遲 15–20 分鐘)。本工具僅供個人長線佈局參考,不構成投資建議。
+  </footer>
+</div>
+</body>
+</html>

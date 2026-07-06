@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>長線佈局雷達</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@600;700&family=Noto+Sans+TC:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0B0F17; --card:#131A26; --line:#232D3F;
+    --ink:#E8EDF4; --dim:#8A96A8; --faint:#5A6576;
+    --up:#E5484D; --down:#30A46C; --buy:#F2B23E;
+    --mono:'IBM Plex Mono',ui-monospace,monospace;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--bg);color:var(--ink);font-family:'Noto Sans TC',sans-serif;
+       min-height:100vh;padding:32px 20px 56px}
+  .wrap{max-width:1080px;margin:0 auto}
+
+  header{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px 18px;
+         border-bottom:1px solid var(--line);padding-bottom:18px;margin-bottom:26px}
+  h1{font-family:'Noto Serif TC',serif;font-size:26px;font-weight:700;letter-spacing:.06em}
+  .sub{color:var(--dim);font-size:13px}
+  .stamp{margin-left:auto;font-family:var(--mono);font-size:12px;color:var(--dim)}
+  .banner{margin-bottom:22px;padding:12px 16px;border:1px solid var(--buy);
+          border-radius:10px;background:rgba(242,178,62,.08);color:var(--buy);
+          font-size:14px;font-weight:500}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;
+        padding:18px 18px 16px;animation:rise .45s ease both}
+  .card:nth-child(2){animation-delay:.05s}.card:nth-child(3){animation-delay:.1s}
+  .card:nth-child(4){animation-delay:.15s}.card:nth-child(5){animation-delay:.2s}
+  @keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion:reduce){.card{animation:none}}
+  .card.hit{border-color:var(--buy);box-shadow:0 0 0 1px var(--buy),0 0 24px rgba(242,178,62,.18)}
+
+  .top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px}
+  .name{font-size:16px;font-weight:700}
+  .sym{font-family:var(--mono);font-size:11px;color:var(--dim);margin-top:2px}
+  .tag{font-size:11px;font-weight:700;color:#0B0F17;background:var(--buy);
+       border-radius:6px;padding:3px 8px;letter-spacing:.08em}
+
+  .price{font-family:var(--mono);font-size:26px;font-weight:600;margin:4px 0 2px}
+  .price small{font-size:13px;color:var(--dim);font-weight:400;margin-right:2px}
+  .chg{font-family:var(--mono);font-size:13px;font-weight:500}
+  .pos{color:var(--up)} .neg{color:var(--down)}
+
+  .spark{display:block;margin:10px 0 14px;opacity:.9}
+
+  /* 乖離水位計 —— 距離買點還有多遠 */
+  .gauge-label{display:flex;justify-content:space-between;font-size:11px;
+               color:var(--dim);margin-bottom:5px}
+  .gauge{position:relative;height:10px;border-radius:5px;
+         background:linear-gradient(90deg,rgba(242,178,62,.55) 0%,rgba(48,164,108,.35) 42%,
+                    rgba(35,45,63,.9) 50%,rgba(229,72,77,.35) 58%,rgba(229,72,77,.55) 100%)}
+  .gauge .zero{position:absolute;left:50%;top:-3px;width:1px;height:16px;background:var(--dim)}
+  .gauge .flag{position:absolute;top:-4px;width:2px;height:18px;background:var(--buy)}
+  .gauge .pin{position:absolute;top:50%;width:14px;height:14px;border-radius:50%;
+              background:var(--ink);border:3px solid var(--card);
+              transform:translate(-50%,-50%);box-shadow:0 0 0 1px var(--line)}
+  .card.hit .gauge .pin{background:var(--buy)}
+  .gauge-scale{display:flex;justify-content:space-between;font-family:var(--mono);
+               font-size:10px;color:#5A6576;margin-top:5px}
+
+  .stats{display:flex;gap:0;margin-top:14px;border-top:1px solid var(--line);padding-top:12px}
+  .stat{flex:1;text-align:center}
+  .stat+.stat{border-left:1px solid var(--line)}
+  .stat b{display:block;font-family:var(--mono);font-size:15px;font-weight:600}
+  .stat span{font-size:11px;color:var(--dim)}
+  .stat.ok b{color:var(--buy)}
+
+  footer{margin-top:34px;color:#5A6576;font-size:12px;line-height:1.8}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>長線佈局雷達</h1>
+    <span class="sub">年線乖離 × 週 RSI 雙重確認</span>
+    <span class="stamp">更新 2026-07-06 22:59 台北時間</span>
+  </header>
+
+  
+
+  <div class="grid">
+  
+    <div class="card">
+      <div class="top">
+        <div>
+          <div class="name">元大台灣50</div>
+          <div class="sym">0050.TW · 2026-07-06</div>
+        </div>
+        
+      </div>
+
+      <div class="price"><small>NT$</small>108.25</div>
+      <div class="chg neg">
+        -0.09%(日)
+      </div>
+
+      <svg class="spark" width="100%" height="44" viewBox="0 0 200 44" preserveAspectRatio="none">
+        <polyline points="3.0,40.8 6.3,41.0 9.6,37.9 12.9,36.6 16.2,35.5 19.4,36.6 22.7,36.1 26.0,34.3 29.3,33.8 32.6,33.8 35.9,29.4 39.2,25.6 42.5,26.8 45.7,28.4 49.0,28.7 52.3,23.6 55.6,23.6 58.9,22.2 62.2,19.7 65.5,20.6 68.8,20.7 72.1,20.8 75.3,22.5 78.6,21.8 81.9,22.6 85.2,23.2 88.5,25.5 91.8,26.2 95.1,22.0 98.4,20.2 101.6,15.9 104.9,16.7 108.2,13.7 111.5,16.2 114.8,10.2 118.1,10.0 121.4,9.8 124.7,7.4 127.9,9.3 131.2,11.7 134.5,15.7 137.8,12.5 141.1,16.6 144.4,17.1 147.7,14.4 151.0,10.3 154.3,9.5 157.5,9.4 160.8,7.8 164.1,3.0 167.4,4.3 170.7,8.0 174.0,7.9 177.3,13.0 180.6,11.3 183.8,7.2 187.1,5.2 190.4,5.9 193.7,6.5 197.0,6.6" fill="none"
+          stroke="#E5484D" stroke-width="1.6"/>
+      </svg>
+
+      <div class="gauge-label"><span>年線乖離水位</span>
+        <span>門檻 -10%</span></div>
+      <div class="gauge">
+        <span class="zero"></span>
+        <span class="flag" style="left:33.33%"></span>
+        <span class="pin" style="left:100.0%"></span>
+      </div>
+      <div class="gauge-scale"><span>-30%</span><span>年線</span><span>+30%</span></div>
+
+      <div class="stats">
+        <div class="stat">
+          <b>+42.9%</b>
+          <span>年線乖離</span>
+        </div>
+        <div class="stat">
+          <b>+2.3%</b>
+          <span>月線乖離</span>
+        </div>
+        <div class="stat">
+          <b>75.5</b>
+          <span>週 RSI</span>
+        </div>
+      </div>
+    </div>
+  
+    <div class="card">
+      <div class="top">
+        <div>
+          <div class="name">元大高股息</div>
+          <div class="sym">0056.TW · 2026-07-06</div>
+        </div>
+        
+      </div>
+
+      <div class="price"><small>NT$</small>53.25</div>
+      <div class="chg pos">
+        +0.76%(日)
+      </div>
+
+      <svg class="spark" width="100%" height="44" viewBox="0 0 200 44" preserveAspectRatio="none">
+        <polyline points="3.0,41.0 6.3,40.7 9.6,39.7 12.9,39.0 16.2,37.7 19.4,37.3 22.7,36.1 26.0,34.9 29.3,33.4 32.6,35.7 35.9,35.0 39.2,35.1 42.5,34.6 45.7,35.0 49.0,35.1 52.3,32.6 55.6,30.9 58.9,27.9 62.2,25.8 65.5,25.5 68.8,23.2 72.1,23.7 75.3,24.7 78.6,24.7 81.9,26.4 85.2,26.3 88.5,27.5 91.8,27.4 95.1,24.0 98.4,21.8 101.6,16.9 104.9,17.0 108.2,13.8 111.5,15.7 114.8,12.4 118.1,8.2 121.4,6.1 124.7,3.6 127.9,6.4 131.2,8.5 134.5,14.2 137.8,9.8 141.1,13.8 144.4,13.9 147.7,11.4 151.0,9.2 154.3,9.1 157.5,8.1 160.8,6.1 164.1,3.0 167.4,4.1 170.7,5.2 174.0,5.1 177.3,9.3 180.6,8.5 183.8,5.0 187.1,6.2 190.4,6.5 193.7,5.9 197.0,5.0" fill="none"
+          stroke="#E5484D" stroke-width="1.6"/>
+      </svg>
+
+      <div class="gauge-label"><span>年線乖離水位</span>
+        <span>門檻 -10%</span></div>
+      <div class="gauge">
+        <span class="zero"></span>
+        <span class="flag" style="left:33.33%"></span>
+        <span class="pin" style="left:100.0%"></span>
+      </div>
+      <div class="gauge-scale"><span>-30%</span><span>年線</span><span>+30%</span></div>
+
+      <div class="stats">
+        <div class="stat">
+          <b>+36.4%</b>
+          <span>年線乖離</span>
+        </div>
+        <div class="stat">
+          <b>+2.4%</b>
+          <span>月線乖離</span>
+        </div>
+        <div class="stat">
+          <b>79.4</b>
+          <span>週 RSI</span>
+        </div>
+      </div>
+    </div>
+  
+    <div class="card">
+      <div class="top">
+        <div>
+          <div class="name">國泰永續高股息</div>
+          <div class="sym">00878.TW · 2026-07-06</div>
+        </div>
+        
+      </div>
+
+      <div class="price"><small>NT$</small>33.49</div>
+      <div class="chg pos">
+        +0.48%(日)
+      </div>
+
+      <svg class="spark" width="100%" height="44" viewBox="0 0 200 44" preserveAspectRatio="none">
+        <polyline points="3.0,41.0 6.3,41.0 9.6,40.4 12.9,39.8 16.2,38.5 19.4,37.7 22.7,36.2 26.0,35.6 29.3,34.3 32.6,35.7 35.9,34.7 39.2,34.7 42.5,33.7 45.7,33.7 49.0,33.4 52.3,31.0 55.6,29.6 58.9,27.3 62.2,25.5 65.5,25.7 68.8,24.2 72.1,24.7 75.3,25.3 78.6,24.7 81.9,25.4 85.2,25.8 88.5,26.2 91.8,26.4 95.1,23.9 98.4,22.1 101.6,18.1 104.9,17.7 108.2,14.6 111.5,16.4 114.8,14.0 118.1,9.9 121.4,8.3 124.7,5.7 127.9,7.7 131.2,8.9 134.5,12.8 137.8,8.9 141.1,11.2 144.4,11.2 147.7,9.7 151.0,7.9 154.3,6.9 157.5,5.8 160.8,4.5 164.1,3.0 167.4,3.5 170.7,4.5 174.0,4.2 177.3,7.6 180.6,7.0 183.8,5.0 187.1,5.6 190.4,5.9 193.7,5.6 197.0,5.1" fill="none"
+          stroke="#E5484D" stroke-width="1.6"/>
+      </svg>
+
+      <div class="gauge-label"><span>年線乖離水位</span>
+        <span>門檻 -10%</span></div>
+      <div class="gauge">
+        <span class="zero"></span>
+        <span class="flag" style="left:33.33%"></span>
+        <span class="pin" style="left:100.0%"></span>
+      </div>
+      <div class="gauge-scale"><span>-30%</span><span>年線</span><span>+30%</span></div>
+
+      <div class="stats">
+        <div class="stat">
+          <b>+43.8%</b>
+          <span>年線乖離</span>
+        </div>
+        <div class="stat">
+          <b>+1.6%</b>
+          <span>月線乖離</span>
+        </div>
+        <div class="stat">
+          <b>83.4</b>
+          <span>週 RSI</span>
+        </div>
+      </div>
+    </div>
+  
+    <div class="card">
+      <div class="top">
+        <div>
+          <div class="name">群益台灣精選高息</div>
+          <div class="sym">00919.TW · 2026-07-06</div>
+        </div>
+        
+      </div>
+
+      <div class="price"><small>NT$</small>29.76</div>
+      <div class="chg pos">
+        +0.78%(日)
+      </div>
+
+      <svg class="spark" width="100%" height="44" viewBox="0 0 200 44" preserveAspectRatio="none">
+        <polyline points="3.0,40.5 6.3,41.0 9.6,40.6 12.9,40.3 16.2,38.9 19.4,38.4 22.7,37.4 26.0,37.5 29.3,36.2 32.6,38.3 35.9,38.1 39.2,38.8 42.5,38.1 45.7,37.5 49.0,37.5 52.3,36.2 55.6,35.2 58.9,32.2 62.2,30.0 65.5,29.8 68.8,28.6 72.1,28.7 75.3,29.5 78.6,28.0 81.9,28.6 85.2,29.1 88.5,28.6 91.8,27.7 95.1,25.4 98.4,24.5 101.6,21.4 104.9,19.5 108.2,15.6 111.5,17.5 114.8,14.9 118.1,10.8 121.4,9.5 124.7,7.5 127.9,8.6 131.2,8.0 134.5,13.0 137.8,7.7 141.1,9.8 144.4,10.0 147.7,10.0 151.0,7.9 154.3,6.7 157.5,5.0 160.8,3.0 164.1,3.0 167.4,4.0 170.7,5.6 174.0,5.4 177.3,8.4 180.6,8.9 183.8,8.7 187.1,9.3 190.4,10.0 193.7,8.6 197.0,7.6" fill="none"
+          stroke="#E5484D" stroke-width="1.6"/>
+      </svg>
+
+      <div class="gauge-label"><span>年線乖離水位</span>
+        <span>門檻 -10%</span></div>
+      <div class="gauge">
+        <span class="zero"></span>
+        <span class="flag" style="left:33.33%"></span>
+        <span class="pin" style="left:100.0%"></span>
+      </div>
+      <div class="gauge-scale"><span>-30%</span><span>年線</span><span>+30%</span></div>
+
+      <div class="stats">
+        <div class="stat">
+          <b>+32.5%</b>
+          <span>年線乖離</span>
+        </div>
+        <div class="stat">
+          <b>+0.0%</b>
+          <span>月線乖離</span>
+        </div>
+        <div class="stat">
+          <b>76.7</b>
+          <span>週 RSI</span>
+        </div>
+      </div>
+    </div>
+  
+    <div class="card">
+      <div class="top">
+        <div>
+          <div class="name">Tesla</div>
+          <div class="sym">TSLA · 2026-07-06</div>
+        </div>
+        
+      </div>
+
+      <div class="price"><small>US$</small>408.00</div>
+      <div class="chg pos">
+        +3.70%(日)
+      </div>
+
+      <svg class="spark" width="100%" height="44" viewBox="0 0 200 44" preserveAspectRatio="none">
+        <polyline points="3.0,41.0 6.3,39.7 9.6,38.4 12.9,33.9 16.2,23.3 19.4,24.5 22.7,20.0 26.0,23.1 29.3,25.4 32.6,25.0 35.9,30.3 39.2,29.3 42.5,28.4 45.7,29.4 49.0,30.6 52.3,27.3 55.6,23.8 58.9,23.1 62.2,24.3 65.5,20.7 68.8,15.8 72.1,9.5 75.3,3.1 78.6,7.5 81.9,3.0 85.2,3.8 88.5,11.8 91.8,16.5 95.1,18.7 98.4,13.7 101.6,13.5 104.9,10.3 108.2,7.5 111.5,4.9 114.8,4.2 118.1,6.6 121.4,14.2 124.7,11.2 127.9,11.2 131.2,13.2 134.5,23.7 137.8,16.9 141.1,21.5 144.4,27.3 147.7,20.6 151.0,17.8 154.3,16.0 157.5,18.5 160.8,21.6 164.1,20.1 167.4,18.3 170.7,27.3 174.0,29.6 177.3,29.8 180.6,28.0 183.8,15.7 187.1,12.4 190.4,10.6 193.7,22.8 197.0,17.2" fill="none"
+          stroke="#E5484D" stroke-width="1.6"/>
+      </svg>
+
+      <div class="gauge-label"><span>年線乖離水位</span>
+        <span>門檻 -25%</span></div>
+      <div class="gauge">
+        <span class="zero"></span>
+        <span class="flag" style="left:8.33%"></span>
+        <span class="pin" style="left:45.8%"></span>
+      </div>
+      <div class="gauge-scale"><span>-30%</span><span>年線</span><span>+30%</span></div>
+
+      <div class="stats">
+        <div class="stat">
+          <b>-2.5%</b>
+          <span>年線乖離</span>
+        </div>
+        <div class="stat">
+          <b>+2.4%</b>
+          <span>月線乖離</span>
+        </div>
+        <div class="stat">
+          <b>51.5</b>
+          <span>週 RSI</span>
+        </div>
+      </div>
+    </div>
+  
+  </div>
+
+  <footer>
+    水位計指針為現價相對 200 日均線(年線)的乖離位置,琥珀旗標為設定的加碼門檻;指針落在旗標左側且週 RSI 達標,即觸發 Email 通知。<br>
+    資料來源:Yahoo Finance(台股報價約延遲 15–20 分鐘)。本工具僅供個人長線佈局參考,不構成投資建議。
+  </footer>
+</div>
+</body>
+</html>
