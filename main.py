@@ -31,8 +31,10 @@ def main() -> int:
             continue
         a = indicators.analyze(sym, histories[sym])
         flag = "★買點" if a["buy_signal"] else ("△乖離達標" if a["dev_hit"] else "")
+        dev200_s = f"{a['dev200']:+7.2f}%" if a["dev200"] is not None else "   N/A "
+        rsi_s = f"{a['weekly_rsi']:5.1f}" if a["weekly_rsi"] is not None else "  N/A"
         print(f"[calc] {a['name']:<8} 現價 {a['price']:>10.2f} | "
-              f"年線乖離 {a['dev200']:>+7.2f}% | 週RSI {a['weekly_rsi'] or 0:>5.1f} {flag}")
+              f"年線乖離 {dev200_s} | 週RSI {rsi_s} {flag}")
         analyses.append(a)
 
     triggered = alerts.process_alerts(analyses, dry_run=args.no_email)
