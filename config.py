@@ -47,6 +47,41 @@ TICKERS = {
         "rsi_threshold": 35.0,
         "alert": True,
     },
+    "MU": {
+        "name": "美光 Micron",
+        "currency": "US$",
+        "dev_threshold": -25.0,
+        "rsi_threshold": 35.0,
+        "alert": True,
+    },
+    "SPCX": {
+        "name": "SPCX",
+        "currency": "US$",
+        "dev_threshold": -20.0,
+        "rsi_threshold": 35.0,
+        "alert": True,
+    },
+    "NOK": {
+        "name": "諾基亞 Nokia",
+        "currency": "US$",
+        "dev_threshold": -15.0,
+        "rsi_threshold": 35.0,
+        "alert": True,
+    },
+    "MRVL": {
+        "name": "邁威爾 Marvell",
+        "currency": "US$",
+        "dev_threshold": -25.0,
+        "rsi_threshold": 35.0,
+        "alert": True,
+    },
+    "DELL": {
+        "name": "戴爾 Dell",
+        "currency": "US$",
+        "dev_threshold": -20.0,
+        "rsi_threshold": 35.0,
+        "alert": True,
+    },
 }
 
 # 均線視窗
