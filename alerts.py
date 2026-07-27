@@ -62,11 +62,15 @@ def process_alerts(analyses: list, dry_run: bool = False) -> list:
         if dry_run:
             print(f"[alert] (dry-run) 將寄送警報:{[a['symbol'] for a in triggered]}")
         else:
-            _send_email(triggered)
-            today = datetime.now().strftime("%Y-%m-%d")
-            for a in triggered:
-                state[a["symbol"]] = {"last_alert": today}
-            _save_state(state)
+            email_ok = _send_email(triggered)
+            _send_line(triggered)
+            if email_ok:
+                today = datetime.now().strftime("%Y-%m-%d")
+                for a in triggered:
+                    state[a["symbol"]] = {"last_alert": today}
+                _save_state(state)
+            else:
+                print("[alert] Email 未寄成功,不記錄冷卻,下次執行會重試")
     else:
         print("[alert] 本次無買點訊號觸發")
 
@@ -96,10 +100,10 @@ def _build_body(triggered: list) -> str:
     return "\n".join(lines)
 
 
-def _send_email(triggered: list) -> None:
+def _send_email(triggered: list) -> bool:
     if not (config.GMAIL_USER and config.GMAIL_APP_PASSWORD):
         print("[alert] 未設定 GMAIL_USER / GMAIL_APP_PASSWORD 環境變數,無法寄信")
-        return
+        return False
 
     names = "、".join(a["name"] for a in triggered)
     msg = MIMEText(_build_body(triggered), "plain", "utf-8")
@@ -107,8 +111,51 @@ def _send_email(triggered: list) -> None:
     msg["From"] = config.GMAIL_USER
     msg["To"] = config.ALERT_TO
 
-    ctx = ssl.create_default_context()
-    with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=ctx) as server:
-        server.login(config.GMAIL_USER, config.GMAIL_APP_PASSWORD)
-        server.sendmail(config.GMAIL_USER, [config.ALERT_TO], msg.as_string())
-    print(f"[alert] 已寄出警報:{names} → {config.ALERT_TO}")
+    try:
+        ctx = ssl.create_default_context()
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=ctx) as server:
+            server.login(config.GMAIL_USER, config.GMAIL_APP_PASSWORD)
+            server.sendmail(config.GMAIL_USER, [config.ALERT_TO], msg.as_string())
+        print(f"[alert] 已寄出警報:{names} → {config.ALERT_TO}")
+        return True
+    except Exception as e:
+        print(f"[alert] Email 寄送失敗:{e}")
+        return False
+
+
+# ------------------------- LINE -------------------------
+
+def _send_line(triggered: list) -> None:
+    """透過 LINE Messaging API 推播買點通知(未設定憑證則自動略過)。"""
+    if not (config.LINE_CHANNEL_TOKEN and config.LINE_USER_ID):
+        print("[alert] 未設定 LINE_CHANNEL_TOKEN / LINE_USER_ID,略過 LINE 通知")
+        return
+
+    import urllib.request
+
+    names = "、".join(a["name"] for a in triggered)
+    text = f"【加碼訊號】{names} 進入長線買點\n\n" + _build_body(triggered)
+    # LINE 單則文字上限 5000 字,保守截斷
+    payload = json.dumps({
+        "to": config.LINE_USER_ID,
+        "messages": [{"type": "text", "text": text[:4900]}],
+    }).encode("utf-8")
+
+    req = urllib.request.Request(
+        "https://api.line.me/v2/bot/message/push",
+        data=payload,
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {config.LINE_CHANNEL_TOKEN}",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            if resp.status == 200:
+                print(f"[alert] 已發送 LINE 通知:{names}")
+            else:
+                print(f"[alert] LINE 回應異常:HTTP {resp.status}")
+    except Exception as e:
+        # LINE 失敗不中斷流程,Email 仍已寄出
+        print(f"[alert] LINE 通知失敗:{e}")
