@@ -82,6 +82,13 @@ TICKERS = {
         "rsi_threshold": 35.0,
         "alert": True,
     },
+    "NVDA": {
+        "name": "輝達 NVIDIA(測試用)",
+        "currency": "US$",
+        "dev_threshold": -3.0,
+        "rsi_threshold": 60.0,
+        "alert": True,
+    },
 }
 
 # 均線視窗
