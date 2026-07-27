@@ -63,7 +63,6 @@ def process_alerts(analyses: list, dry_run: bool = False) -> list:
             print(f"[alert] (dry-run) 將寄送警報:{[a['symbol'] for a in triggered]}")
         else:
             email_ok = _send_email(triggered)
-            _send_line(triggered)
             if email_ok:
                 today = datetime.now().strftime("%Y-%m-%d")
                 for a in triggered:
@@ -121,41 +120,3 @@ def _send_email(triggered: list) -> bool:
     except Exception as e:
         print(f"[alert] Email 寄送失敗:{e}")
         return False
-
-
-# ------------------------- LINE -------------------------
-
-def _send_line(triggered: list) -> None:
-    """透過 LINE Messaging API 推播買點通知(未設定憑證則自動略過)。"""
-    if not (config.LINE_CHANNEL_TOKEN and config.LINE_USER_ID):
-        print("[alert] 未設定 LINE_CHANNEL_TOKEN / LINE_USER_ID,略過 LINE 通知")
-        return
-
-    import urllib.request
-
-    names = "、".join(a["name"] for a in triggered)
-    text = f"【加碼訊號】{names} 進入長線買點\n\n" + _build_body(triggered)
-    # LINE 單則文字上限 5000 字,保守截斷
-    payload = json.dumps({
-        "to": config.LINE_USER_ID,
-        "messages": [{"type": "text", "text": text[:4900]}],
-    }).encode("utf-8")
-
-    req = urllib.request.Request(
-        "https://api.line.me/v2/bot/message/push",
-        data=payload,
-        headers={
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {config.LINE_CHANNEL_TOKEN}",
-        },
-        method="POST",
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=15) as resp:
-            if resp.status == 200:
-                print(f"[alert] 已發送 LINE 通知:{names}")
-            else:
-                print(f"[alert] LINE 回應異常:HTTP {resp.status}")
-    except Exception as e:
-        # LINE 失敗不中斷流程,Email 仍已寄出
-        print(f"[alert] LINE 通知失敗:{e}")
