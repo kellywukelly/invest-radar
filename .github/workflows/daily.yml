@@ -37,4 +37,6 @@ jobs:
           git add docs/
           git add alert_state.json 2>/dev/null || true
           git commit -m "chore: 更新儀表板 $(TZ=Asia/Taipei date +'%Y-%m-%d %H:%M')" || echo "無變更"
+          git fetch origin main
+          git merge -X ours --no-edit origin/main
           git push
